@@ -1,0 +1,52 @@
+#!/usr/bin/python
+
+import os
+import os.path
+import sys
+import yaml
+
+from jinja2 import Environment, FileSystemLoader
+
+def createFile(template, cert, fileName):
+    env = Environment(loader=FileSystemLoader('templates'))
+    template = env.get_template(template)
+    result = template.render(cert = cert)
+    with open(fileName, "w") as cnf:
+        cnf.write(result)
+
+def main() -> int:
+    if len(sys.argv) != 2:
+        print('Usage: sslgen <file>', file=sys.stderr)
+        return 1
+    with open(sys.argv[1], 'r') as file:
+        conf = yaml.safe_load(file)
+        for cert in conf['cert']:
+            for param in ['certificate', 'keyFile', 'csrFile']:
+                if param in cert:
+                    dirname = os.path.dirname(cert[param])
+                    if not os.path.exists(dirname):
+                        os.makedirs(dirname)
+            if cert['ca']:
+                createFile('ca.jinja', cert, 'ca.cnf')
+                os.system('openssl req -x509 -config ca.cnf -nodes -days %d -out %s -outform PEM' % (cert['days'], cert['certificate']))
+            else:
+                createFile('server.jinja', cert, 'server.cnf')
+                os.system('openssl req -config server.cnf -newkey rsa:%d -nodes -out %s -outform PEM' % (cert['bits'], cert['csrFile']))  
+                cert['database'] = os.path.dirname(cert['caKeyFile']) + '/database.txt'
+                if not os.path.exists(cert['database']):
+                    with open(cert['database'], "w") as databaseFile:
+                        databaseFile.write('')
+                cert['serial'] = os.path.dirname(cert['caKeyFile']) + '/serial.txt'
+                if not os.path.exists(cert['serial']):
+                    with open(cert['serial'], "w") as indexFile:
+                        indexFile.write('01')
+                cert['newCertsDir'] = os.path.dirname(cert['caKeyFile']) + "/certs"
+                if not os.path.exists(cert['newCertsDir']):
+                    os.makedirs(cert['newCertsDir'])
+                createFile('sign.jinja', cert, 'sign.cnf')
+                os.system('openssl ca -batch -config sign.cnf -policy signing_policy -extensions signing_req -out %s -infiles %s' % (cert['certificate'], cert['csrFile']))
+
+    return 0
+
+if __name__ == '__main__':
+    sys.exit(main())

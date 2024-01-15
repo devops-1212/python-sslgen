@@ -1,0 +1,26 @@
+[req]
+default_bits       = {{ cert.bits }}
+default_keyfile    = {{ cert.keyFile }}
+string_mask        = utf8only
+distinguished_name = req_distinguished_name
+req_extensions     = server_req_extensions
+prompt             = no
+
+[req_distinguished_name]
+countryName            = {{ cert.countryName }}
+stateOrProvinceName    = {{ cert.stateOrProvinceName }}
+organizationName       = {{ cert.organizationName }}
+organizationalUnitName = {{ cert.organizationalUnitName }}
+commonName             = {{ cert.commonName }}
+emailAddress           = {{ cert.emailAddress }}
+
+[server_req_extensions]
+subjectKeyIdentifier = hash
+basicConstraints     = CA:FALSE
+keyUsage             = digitalSignature, keyEncipherment
+subjectAltName       = @alternate_names
+
+[alternate_names]
+{% for alternateName in cert.subjectAltName -%}
+{{ alternateName.name }} = {{ alternateName.value}}
+{% endfor %}

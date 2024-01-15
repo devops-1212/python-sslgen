@@ -1,0 +1,48 @@
+[ca]
+default_ca = CA_default          
+ 
+[CA_default]
+default_days    = {{ cert.days }}        
+default_md      = sha256    
+x509_extensions = ca_extensions 
+copy_extensions = copy
+private_key     = {{ cert.caKeyFile }}
+certificate     = {{ cert.caCertificate }}
+new_certs_dir   = {{ cert.newCertsDir }}
+database        = {{ cert.database }}
+serial          = {{ cert.serial }}
+
+[req]
+default_bits       = {{ cert.bits }}
+x509_extensions    = ca_extensions
+string_mask        = utf8only
+distinguished_name = req_distinguished_name
+prompt             = no
+
+[req_distinguished_name]
+countryName            = {{ cert.countryName }}
+stateOrProvinceName    = {{ cert.stateOrProvinceName }}
+organizationName       = {{ cert.organizationName }}
+organizationalUnitName = {{ cert.organizationalUnitName }}
+commonName             = {{ cert.commonName }}
+emailAddress           = {{ cert.emailAddress }}
+
+[ca_extensions]
+subjectKeyIdentifier   = hash
+authorityKeyIdentifier = keyid:always, issuer
+basicConstraints       = critical, CA:true
+
+[signing_policy]
+countryName            = optional
+stateOrProvinceName    = optional
+localityName           = optional
+organizationName       = optional
+organizationalUnitName = optional
+commonName             = supplied
+emailAddress           = optional
+
+[signing_req]
+subjectKeyIdentifier   = hash
+authorityKeyIdentifier = keyid,issuer
+basicConstraints       = CA:FALSE
+keyUsage               = digitalSignature, keyEncipherment
